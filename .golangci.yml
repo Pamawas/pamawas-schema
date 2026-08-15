@@ -1,6 +1,5 @@
 # .golangci.yml - golangci-lint configuration for Pamawas schema
 # See https://golangci-lint.run/docs/configuration/ for all options
-
 version: "2"
 
 linters:
@@ -15,21 +14,19 @@ linters:
     - unparam
     - noctx
     - rowserrcheck
-
-linters-settings:
-  gosec:
-    excludes:
-      - G104 # Ignore unhandled errors (we handle errors explicitly)
-      - G115 # Ignore math/big.Int in tests
-  errcheck:
-    check-type-assertions: true
-    check-blank: true
-  govet:
-    check-shadowing: true
-  staticcheck:
-    checks: ["all", "-ST1000"]
-
-issues:
+  settings:
+    gosec:
+      excludes:
+        - G104 # Ignore unhandled errors (we handle errors explicitly)
+        - G115 # Ignore math/big.Int in tests
+    errcheck:
+      check-type-assertions: true
+      check-blank: true
+    govet:
+      enable:
+        - shadow
+    staticcheck:
+      checks: ["all", "-ST1000"]
   exclude-rules:
     - path: _test\.go
       linters:
@@ -37,6 +34,8 @@ issues:
         - goconst
         - unparam
         - lll
+
+issues:
   max-issues-per-linter: 0
   max-same-issues: 0
 
