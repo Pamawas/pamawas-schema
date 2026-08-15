@@ -3,12 +3,7 @@ package main
 import (
 	"context"
 	"database/sql"
-	"embed"
-	"encoding/json"
-	"fmt"
 	"io/fs"
-	"log"
-	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
