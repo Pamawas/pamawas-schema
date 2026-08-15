@@ -27,13 +27,14 @@ linters:
         - shadow
     staticcheck:
       checks: ["all", "-ST1000"]
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - gosec
-        - goconst
-        - unparam
-        - lll
+  exclusions:
+    rules:
+      - path: _test\.go
+        linters:
+          - gosec
+          - goconst
+          - unparam
+          - lll
 
 issues:
   max-issues-per-linter: 0
