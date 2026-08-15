@@ -17,7 +17,7 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.26'
+        go-version: '1.26.6'
         cache: true
 
     - name: Download dependencies
@@ -50,17 +50,17 @@ jobs:
     - name: Set up Go
       uses: actions/setup-go@v5
       with:
-        go-version: '1.26'
+        go-version: '1.26.6'
         cache: true
 
     - name: Download dependencies
       run: go mod download
 
     - name: Build binary
-      run: CGO_ENABLED=0 go build -o migration-runner .
+      run: CGO_ENABLED=0 go build -o main .
 
     - name: Verify binary runs
-      run: ./migration-runner --help || true
+      run: ./main --help || true
 
   docker:
     name: Build & Push Docker Image
@@ -92,7 +92,7 @@ jobs:
       id: meta
       uses: docker/metadata-action@v5
       with:
-        images: ghcr.io/${{ github.repository_owner }}/pamawas-schema
+        images: ghcr.io/${{ github.repository_owner }}/${{ github.event.repository.name }}
         tags: |
           type=ref,event=branch
           type=ref,event=pr
