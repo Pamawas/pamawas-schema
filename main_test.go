@@ -4,7 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"embed"
-	"fs"
+	"encoding/json"
+	"fmt"
+	"io/fs"
+	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"sort"
@@ -14,9 +18,6 @@ import (
 
 	_ "github.com/lib/pq"
 )
-
-//go:embed migrations/*.sql
-var embeddedMigrations embed.FS
 
 // TestConfig holds test configuration
 type TestConfig struct {
@@ -29,7 +30,7 @@ func getTestConfig() TestConfig {
 	dbURL := os.Getenv("TEST_DATABASE_URL")
 	if dbURL == "" {
 		// Default to a test database - this will be skipped if not available
-		dbURL = "postgres://pamawas:pamawas@localhost:5432/pamawas_test?sslmode=disable"
+		dbURL = "postgres://pamawas:***@localhost:5432/pamawas_test?sslmode=disable"
 	}
 
 	migrationsDir := os.Getenv("TEST_MIGRATIONS_DIR")
@@ -52,7 +53,7 @@ func TestMigrationRunner_Embedded(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -156,7 +157,7 @@ func TestMigrationRunner_FromDirectory(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -197,7 +198,7 @@ func TestMigrationRunner_HealthEndpoint(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
