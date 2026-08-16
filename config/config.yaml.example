@@ -1,0 +1,7 @@
+# pamawas-schema configuration
+# Copy this to config.yaml and adjust values, or use environment variables with PAMAWAS_SCHEMA_ prefix
+
+database_url: "postgres://pamawas:pamawas@localhost:5432/pamawas?sslmode=disable"
+migrations_dir: ""
+port: "8080"
+use_embedded_migrations: true

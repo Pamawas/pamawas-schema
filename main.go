@@ -16,41 +16,14 @@ import (
 	"time"
 
 	_ "github.com/lib/pq"
+
+	"github.com/Pamawas/pamawas-schema/config"
+	"github.com/Pamawas/pamawas-schema/middleware"
+	"github.com/Pamawas/pamawas-schema/otel"
 )
 
 //go:embed migrations/*.sql
 var embeddedMigrations embed.FS
-
-type Config struct {
-	DatabaseURL    string
-	MigrationsDir  string
-	Port           string
-	UseEmbedded    bool
-}
-
-func loadConfig() Config {
-	cfg := Config{
-		DatabaseURL:   os.Getenv("DATABASE_URL"),
-		MigrationsDir: os.Getenv("MIGRATIONS_DIR"),
-		Port:          getEnv("PORT", "8080"),
-		UseEmbedded:   os.Getenv("USE_EMBEDDED_MIGRATIONS") == "true",
-	}
-
-	if cfg.DatabaseURL == "" {
-		log.Fatal("DATABASE_URL environment variable not set")
-	}
-	if cfg.MigrationsDir == "" && !cfg.UseEmbedded {
-		cfg.MigrationsDir = "/migrations"
-	}
-	return cfg
-}
-
-func getEnv(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
 
 type Migration struct {
 	Version string
@@ -286,7 +259,27 @@ func mapKeys(m map[string]bool) []string {
 }
 
 func main() {
-	cfg := loadConfig()
+	cfg := config.Load()
+	if err := cfg.Validate(); err != nil {
+		log.Fatalf("Config validation failed: %v", err)
+	}
+
+	// Initialize OpenTelemetry tracing
+	otelShutdown, err := otel.InitTracer(otel.Config{
+		ServiceName:  "pamawas-schema",
+		OTLPEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+		Insecure:     true,
+		SampleRatio:  1.0,
+		Enabled:      os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "",
+	})
+	if err != nil {
+		log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
+	}
+	defer func() {
+		if err := otelShutdown(context.Background()); err != nil {
+			log.Printf("Error shutting down OpenTelemetry: %v", err)
+		}
+	}()
 
 	// Connect to database
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
@@ -338,9 +331,14 @@ func main() {
 		}
 	})
 
+	// Wrap router with middleware
+	var handler http.Handler = mux
+	handler = middleware.LoggingMiddleware("pamawas-schema", handler)
+	handler = middleware.ErrorLoggingMiddleware("pamawas-schema", handler)
+
 	server := &http.Server{
 		Addr:              ":" + cfg.Port,
-		Handler:           mux,
+		Handler:           handler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 

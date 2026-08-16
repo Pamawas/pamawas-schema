@@ -1,0 +1,20 @@
+*** Begin Patch
+*** Update File: /opt/data/workspace/pamawas/pamawas-schema/main.go
+@@
+ \trows, err := mr.db.QueryContext(ctx, \"SELECT version FROM schema_migrations\")
+ \tif err != nil {
+ \t\t// Table might not exist yet
+ \t\treturn make(map[string]bool), nil
+-\t}
+-\tdefer rows.Close()
+-
+ \tapplied := make(map[string]bool)
+ \tfor rows.Next() {
+ \t\tvar version string
+ \t\tif err := rows.Scan(&version); err != nil {
+ \t\t\treturn nil, err
+ \t\t}
+ \t\tapplied[version] = true
+ \t}
+ \treturn applied, rows.Err()
+*** End Patch
