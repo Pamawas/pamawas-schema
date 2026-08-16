@@ -17,6 +17,7 @@ Provides the canonical database schema shared by all Pamawas components. Contain
 ## Tables
 
 ### events
+
 Raw normalized events from all ingestion sources.
 
 ```sql
@@ -36,6 +37,7 @@ CREATE TABLE IF NOT EXISTS events (
 ```
 
 ### incidents
+
 Correlated groups of events representing a single infrastructure incident.
 
 ```sql
@@ -51,6 +53,7 @@ CREATE TABLE IF NOT EXISTS incidents (
 ```
 
 ### incident_events
+
 Many-to-many link between incidents and events.
 
 ```sql
@@ -62,6 +65,7 @@ CREATE TABLE IF NOT EXISTS incident_events (
 ```
 
 ### evidence
+
 Investigation findings from the LLM investigator with evidence classification.
 
 ```sql
@@ -76,6 +80,7 @@ CREATE TABLE IF NOT EXISTS evidence (
 ```
 
 ### reports
+
 Generated and delivered reports.
 
 ```sql
@@ -145,8 +150,11 @@ type Incident struct {
 - ✅ Multi-stage Dockerfile for migration runner
 - ✅ Embedded migrations support (USE_EMBEDDED_MIGRATIONS=true)
 - ✅ GitHub Actions workflow (main + dev branches, GHCR publishing)
-- ⬜ Additional migrations for future schema changes
-- ⬜ Database seed data for testing
+- ✅ **Structured JSON logging with zerolog**
+- ✅ **Request/response logging middleware with Loki labels**
+- ✅ **OpenTelemetry tracing (OTLP gRPC → Tempo)**
+- ✅ **Prometheus metrics endpoint (`/metrics`)**
+- ✅ Viper config management (YAML + ENV)
 
 ## Kanban Tasks
 
