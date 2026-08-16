@@ -48,13 +48,17 @@ func TestMigrationRunner_Embedded(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer func() { _ = db.Close() }()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Logf("Failed to close database: %v", closeErr)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		t.Skipf("Skipping test: database not available: %v", err)
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		t.Skipf("Skipping test: database not available: %v", pingErr)
 	}
 
 	// Create a migration runner with embedded migrations
@@ -74,27 +78,27 @@ func TestMigrationRunner_Embedded(t *testing.T) {
 	}
 
 	// Ensure migrations table exists
-	if err := runner.ensureMigrationsTable(ctx); err != nil {
-		t.Fatalf("Failed to ensure migrations table: %v", err)
+	if tableErr := runner.ensureMigrationsTable(ctx); tableErr != nil {
+		t.Fatalf("Failed to ensure migrations table: %v", tableErr)
 	}
 
 	// Get applied migrations (should be empty initially)
-	applied, err := runner.getAppliedMigrations(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get applied migrations: %v", err)
+	applied, migErr := runner.getAppliedMigrations(ctx)
+	if migErr != nil {
+		t.Fatalf("Failed to get applied migrations: %v", migErr)
 	}
 
 	t.Logf("Initially applied migrations: %d", len(applied))
 
 	// Run migrations
-	if err := runner.Run(ctx); err != nil {
-		t.Fatalf("Migration failed: %v", err)
+	if runErr := runner.Run(ctx); runErr != nil {
+		t.Fatalf("Migration failed: %v", runErr)
 	}
 
 	// Verify all migrations applied
-	applied, err = runner.getAppliedMigrations(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get applied migrations after run: %v", err)
+	applied, migErr = runner.getAppliedMigrations(ctx)
+	if migErr != nil {
+		t.Fatalf("Failed to get applied migrations after run: %v", migErr)
 	}
 
 	if len(applied) != len(runner.migrations) {
@@ -104,8 +108,8 @@ func TestMigrationRunner_Embedded(t *testing.T) {
 	t.Logf("Successfully applied %d migrations", len(applied))
 
 	// Run again - should be idempotent
-	if err := runner.Run(ctx); err != nil {
-		t.Fatalf("Second migration run failed: %v", err)
+	if runErr := runner.Run(ctx); runErr != nil {
+		t.Fatalf("Second migration run failed: %v", runErr)
 	}
 
 	applied, err = runner.getAppliedMigrations(ctx)
@@ -152,19 +156,23 @@ func TestMigrationRunner_FromDirectory(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer func() { _ = db.Close() }()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Logf("Failed to close database: %v", closeErr)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		t.Skipf("Skipping test: database not available: %v", err)
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		t.Skipf("Skipping test: database not available: %v", pingErr)
 	}
 
 	// Create migration runner from directory
-	runner, err := NewMigrationRunner(db, migrationsDir, false)
-	if err != nil {
-		t.Fatalf("Failed to create migration runner: %v", err)
+	runner, runnerErr := NewMigrationRunner(db, migrationsDir, false)
+	if runnerErr != nil {
+		t.Fatalf("Failed to create migration runner: %v", runnerErr)
 	}
 
 	if len(runner.migrations) != len(testMigrations) {
@@ -193,29 +201,33 @@ func TestMigrationRunner_HealthEndpoint(t *testing.T) {
 	if err != nil {
 		t.Skipf("Skipping test: cannot open database: %v", err)
 	}
-	defer func() { _ = db.Close() }()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Logf("Failed to close database: %v", closeErr)
+		}
+	}()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	if err := db.PingContext(ctx); err != nil {
-		t.Skipf("Skipping test: database not available: %v", err)
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		t.Skipf("Skipping test: database not available: %v", pingErr)
 	}
 
-	runner, err := NewMigrationRunner(db, "", true)
-	if err != nil {
-		t.Fatalf("Failed to create migration runner: %v", err)
+	runner, runnerErr := NewMigrationRunner(db, "", true)
+	if runnerErr != nil {
+		t.Fatalf("Failed to create migration runner: %v", runnerErr)
 	}
 
 	// Ensure table exists
-	if err := runner.ensureMigrationsTable(ctx); err != nil {
-		t.Fatalf("Failed to ensure migrations table: %v", err)
+	if tableErr := runner.ensureMigrationsTable(ctx); tableErr != nil {
+		t.Fatalf("Failed to ensure migrations table: %v", tableErr)
 	}
 
 	// Test health check logic by calling the internal methods
-	applied, err := runner.getAppliedMigrations(ctx)
-	if err != nil {
-		t.Fatalf("Failed to get applied migrations: %v", err)
+	applied, migErr := runner.getAppliedMigrations(ctx)
+	if migErr != nil {
+		t.Fatalf("Failed to get applied migrations: %v", migErr)
 	}
 
 	var pending []string

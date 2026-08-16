@@ -119,6 +119,7 @@ func (mr *MigrationRunner) loadMigrationsFromDir(dir string) ([]Migration, error
 			continue
 		}
 		path := filepath.Join(dir, entry.Name())
+		// #nosec G304 - path is constructed from controlled directory and filename
 		content, err := os.ReadFile(path)
 		if err != nil {
 			return nil, fmt.Errorf("failed to read migration %s: %w", path, err)
@@ -150,7 +151,11 @@ func (mr *MigrationRunner) getAppliedMigrations(ctx context.Context) (map[string
 		// Table might not exist yet
 		return make(map[string]bool), nil
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Printf("Failed to close rows: %v", err)
+		}
+	}()
 
 	applied := make(map[string]bool)
 	for rows.Next() {
@@ -195,13 +200,17 @@ func (mr *MigrationRunner) Run(ctx context.Context) error {
 
 		// Execute migration SQL
 		if _, err := tx.ExecContext(ctx, migration.SQL); err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("Failed to rollback transaction: %v", rbErr)
+			}
 			return fmt.Errorf("failed to execute migration %s: %w", migration.Version, err)
 		}
 
 		// Record migration as applied
 		if _, err := tx.ExecContext(ctx, "INSERT INTO schema_migrations (version) VALUES ($1)", migration.Version); err != nil {
-			tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				log.Printf("Failed to rollback transaction: %v", rbErr)
+			}
 			return fmt.Errorf("failed to record migration %s: %w", migration.Version, err)
 		}
 
@@ -229,10 +238,12 @@ func (mr *MigrationRunner) healthHandler(w http.ResponseWriter, r *http.Request)
 	applied, err := mr.getAppliedMigrations(ctx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		json.NewEncoder(w).Encode(HealthResponse{
+		if err := json.NewEncoder(w).Encode(HealthResponse{
 			Status:    "unhealthy",
 			Timestamp: time.Now().UTC().Format(time.RFC3339),
-		})
+		}); err != nil {
+			log.Printf("Failed to encode health response: %v", err)
+		}
 		return
 	}
 
@@ -255,12 +266,14 @@ func (mr *MigrationRunner) healthHandler(w http.ResponseWriter, r *http.Request)
 		w.WriteHeader(http.StatusOK) // Still 200, but with pending info
 	}
 
-	json.NewEncoder(w).Encode(HealthResponse{
-		Status:     status,
-		Migrations: mapKeys(applied),
-		Pending:    pending,
-		Timestamp:  time.Now().UTC().Format(time.RFC3339),
-	})
+	if err := json.NewEncoder(w).Encode(HealthResponse{
+				Status:     status,
+				Migrations: mapKeys(applied),
+				Pending:    pending,
+				Timestamp:  time.Now().UTC().Format(time.RFC3339),
+			}); err != nil {
+				log.Printf("Failed to encode health response: %v", err)
+			}
 }
 
 func mapKeys(m map[string]bool) []string {
@@ -280,22 +293,26 @@ func main() {
 	if err != nil {
 		log.Fatalf("Failed to open database: %v", err)
 	}
-	defer db.Close()
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			log.Printf("Failed to close database: %v", closeErr)
+		}
+	}()
 
 	// Test connection with retries
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	for i := 0; i < 30; i++ {
-		if err := db.PingContext(ctx); err == nil {
+		if pingErr := db.PingContext(ctx); pingErr == nil {
 			break
 		}
 		log.Printf("Waiting for database... (%d/30)", i+1)
 		time.Sleep(1 * time.Second)
 	}
 
-	if err := db.PingContext(ctx); err != nil {
-		log.Fatalf("Failed to connect to database after retries: %v", err)
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		log.Fatalf("Failed to connect to database after retries: %v", pingErr)
 	}
 
 	log.Println("Connected to database")
@@ -316,12 +333,15 @@ func main() {
 	mux.HandleFunc("/healthz", runner.healthHandler)
 	mux.HandleFunc("/ready", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]string{"status": "ready"})
+		if err := json.NewEncoder(w).Encode(map[string]string{"status": "ready"}); err != nil {
+			log.Printf("Failed to encode ready response: %v", err)
+		}
 	})
 
 	server := &http.Server{
-		Addr:    ":" + cfg.Port,
-		Handler: mux,
+		Addr:              ":" + cfg.Port,
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
 	}
 
 	log.Printf("Starting migration runner health server on :%s", cfg.Port)
