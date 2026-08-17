@@ -276,8 +276,8 @@ func main() {
 		log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
 	}
 	defer func() {
-		if err := otelShutdown(context.Background()); err != nil {
-			log.Printf("Error shutting down OpenTelemetry: %v", err)
+		if shutdownErr := otelShutdown(context.Background()); shutdownErr != nil {
+			log.Printf("Error shutting down OpenTelemetry: %v", shutdownErr)
 		}
 	}()
 
