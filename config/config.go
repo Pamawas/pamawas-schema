@@ -9,10 +9,10 @@ import (
 )
 
 type Config struct {
-	DatabaseURL    string
-	MigrationsDir  string
-	Port           string
-	UseEmbedded    bool
+	DatabaseURL   string
+	MigrationsDir string
+	Port          string
+	UseEmbedded   bool
 }
 
 func Load() Config {
@@ -36,10 +36,10 @@ func Load() Config {
 	}
 
 	cfg := Config{
-		DatabaseURL:    v.GetString("database_url"),
-		MigrationsDir:  v.GetString("migrations_dir"),
-		Port:           v.GetString("port"),
-		UseEmbedded:    v.GetBool("use_embedded_migrations"),
+		DatabaseURL:   v.GetString("database_url"),
+		MigrationsDir: v.GetString("migrations_dir"),
+		Port:          v.GetString("port"),
+		UseEmbedded:   v.GetBool("use_embedded_migrations"),
 	}
 
 	if cfg.DatabaseURL == "" {

@@ -240,13 +240,13 @@ func (mr *MigrationRunner) healthHandler(w http.ResponseWriter, r *http.Request)
 	}
 
 	if err := json.NewEncoder(w).Encode(HealthResponse{
-				Status:     status,
-				Migrations: mapKeys(applied),
-				Pending:    pending,
-				Timestamp:  time.Now().UTC().Format(time.RFC3339),
-			}); err != nil {
-				log.Printf("Failed to encode health response: %v", err)
-			}
+		Status:     status,
+		Migrations: mapKeys(applied),
+		Pending:    pending,
+		Timestamp:  time.Now().UTC().Format(time.RFC3339),
+	}); err != nil {
+		log.Printf("Failed to encode health response: %v", err)
+	}
 }
 
 func mapKeys(m map[string]bool) []string {

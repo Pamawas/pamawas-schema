@@ -201,10 +201,12 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(runner.migrations) != 1 {
-		t.Fatalf("migration count = %d, want 1", len(runner.migrations))
+	// Expect 2 migrations: 001_init and 002_idempotency_records
+	if len(runner.migrations) != 2 {
+		t.Fatalf("migration count = %d, want 2", len(runner.migrations))
 	}
 
+	// First migration should be 001_init
 	migration := runner.migrations[0]
 	if migration.Version != "001_init" {
 		t.Fatalf("initial migration version = %q", migration.Version)
@@ -218,5 +220,14 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 		if !strings.Contains(migration.SQL, required) {
 			t.Errorf("migration missing %q", required)
 		}
+	}
+
+	// Second migration should be 002_idempotency_records
+	migration2 := runner.migrations[1]
+	if migration2.Version != "002_idempotency_records" {
+		t.Fatalf("second migration version = %q", migration2.Version)
+	}
+	if !strings.Contains(migration2.SQL, "idempotency_records") {
+		t.Errorf("second migration missing idempotency_records table")
 	}
 }
