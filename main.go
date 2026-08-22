@@ -264,22 +264,29 @@ func main() {
 		log.Fatalf("Config validation failed: %v", err)
 	}
 
-	// Initialize OpenTelemetry tracing
-	otelShutdown, err := otel.InitTracer(otel.Config{
-		ServiceName:  "pamawas-schema",
-		OTLPEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
-		Insecure:     true,
-		SampleRatio:  1.0,
-		Enabled:      os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "",
-	})
-	if err != nil {
-		log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
-	}
-	defer func() {
-		if shutdownErr := otelShutdown(context.Background()); shutdownErr != nil {
-			log.Printf("Error shutting down OpenTelemetry: %v", shutdownErr)
+	// Check for migrate-only mode
+	migrateOnly := os.Getenv("PAMAWAS_SCHEMA_MIGRATE_ONLY") == "true"
+
+	// Initialize OpenTelemetry tracing (skip in migrate-only mode)
+	var otelShutdown func(context.Context) error
+	if !migrateOnly {
+		var err error
+		otelShutdown, err = otel.InitTracer(otel.Config{
+			ServiceName:  "pamawas-schema",
+			OTLPEndpoint: os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"),
+			Insecure:     true,
+			SampleRatio:  1.0,
+			Enabled:      os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT") != "",
+		})
+		if err != nil {
+			log.Fatalf("Failed to initialize OpenTelemetry: %v", err)
 		}
-	}()
+		defer func() {
+			if shutdownErr := otelShutdown(context.Background()); shutdownErr != nil {
+				log.Printf("Error shutting down OpenTelemetry: %v", shutdownErr)
+			}
+		}()
+	}
 
 	// Connect to database
 	db, err := sql.Open("postgres", cfg.DatabaseURL)
@@ -319,6 +326,12 @@ func main() {
 	// Run migrations
 	if err := runner.Run(ctx); err != nil {
 		log.Fatalf("Migration failed: %v", err)
+	}
+
+	// Exit early if migrate-only mode
+	if migrateOnly {
+		log.Println("Migrations complete, exiting (migrate-only mode)")
+		return
 	}
 
 	// Start HTTP server for health checks
