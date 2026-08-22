@@ -25,6 +25,10 @@ func Load() Config {
 	v.SetEnvPrefix("PAMAWAS_SCHEMA")
 	v.AutomaticEnv()
 
+	// Also read from DATABASE_URL directly for CI compatibility
+	v.BindEnv("database_url", "DATABASE_URL")
+	v.BindEnv("use_embedded_migrations", "USE_EMBEDDED_MIGRATIONS")
+
 	// Defaults
 	v.SetDefault("port", "8080")
 	v.SetDefault("use_embedded_migrations", false)
@@ -43,7 +47,7 @@ func Load() Config {
 	}
 
 	if cfg.DatabaseURL == "" {
-		panic("DATABASE_URL not set (config file or PAMAWAS_SCHEMA_DATABASE_URL env var)")
+		panic("DATABASE_URL not set (config file or PAMAWAS_SCHEMA_DATABASE_URL env var or DATABASE_URL)")
 	}
 	if cfg.MigrationsDir == "" && !cfg.UseEmbedded {
 		// Default to embedded migrations if not specified
