@@ -26,8 +26,12 @@ func Load() Config {
 	v.AutomaticEnv()
 
 	// Also read from DATABASE_URL directly for CI compatibility
-	v.BindEnv("database_url", "DATABASE_URL")
-	v.BindEnv("use_embedded_migrations", "USE_EMBEDDED_MIGRATIONS")
+	if err := v.BindEnv("database_url", "DATABASE_URL"); err != nil {
+		panic(fmt.Sprintf("failed to bind DATABASE_URL env: %v", err))
+	}
+	if err := v.BindEnv("use_embedded_migrations", "USE_EMBEDDED_MIGRATIONS"); err != nil {
+		panic(fmt.Sprintf("failed to bind USE_EMBEDDED_MIGRATIONS env: %v", err))
+	}
 
 	// Defaults
 	v.SetDefault("port", "8080")
