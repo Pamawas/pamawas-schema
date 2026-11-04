@@ -8,7 +8,7 @@ RUN go mod download
 
 COPY . .
 
-RUN CGO_ENABLED=0 go build -o migration-runner .
+RUN CGO_ENABLED=0 go build -o pamawas-schema .
 
 FROM alpine:latest
 
@@ -16,9 +16,9 @@ RUN apk --no-cache add ca-certificates
 
 WORKDIR /app
 
-COPY --from=builder /app/migration-runner .
+COPY --from=builder /app/pamawas-schema .
 COPY --from=builder /app/migrations ./migrations
 
 EXPOSE 8080
 
-CMD ["./migration-runner"]
+CMD ["./pamawas-schema"]
