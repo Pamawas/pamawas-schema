@@ -263,7 +263,7 @@ func main() {
 	if err := cfg.Validate(); err != nil {
 		log.Fatalf("Config validation failed: %v", err)
 	}
-	printStartupBanner("Pamawas Schema", loadVersion(), cfg.Port)
+	printStartupBanner(loadVersion(), cfg.Port)
 
 	// Check for migrate-only mode
 	migrateOnly := os.Getenv("PAMAWAS_SCHEMA_MIGRATE_ONLY") == "true"
