@@ -201,9 +201,9 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Expect 3 migrations: 001_init, 002_idempotency_records, 003_feedback_and_reviews
-	if len(runner.migrations) != 3 {
-		t.Fatalf("migration count = %d, want 3", len(runner.migrations))
+	// Expect 4 migrations: 001_init, 002_idempotency_records, 003_feedback_and_reviews, 004_add_metrics_and_logs
+	if len(runner.migrations) != 4 {
+		t.Fatalf("migration count = %d, want 4", len(runner.migrations))
 	}
 
 	// First migration should be 001_init
@@ -243,6 +243,19 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	} {
 		if !strings.Contains(migration3.SQL, required) {
 			t.Errorf("third migration missing %q", required)
+		}
+	}
+
+	// Fourth migration should be 004_add_metrics_and_logs
+	migration4 := runner.migrations[3]
+	if migration4.Version != "004_add_metrics_and_logs" {
+		t.Fatalf("fourth migration version = %q", migration4.Version)
+	}
+	for _, required := range []string{
+		"metrics JSONB", "logs JSONB", "evidence",
+	} {
+		if !strings.Contains(migration4.SQL, required) {
+			t.Errorf("fourth migration missing %q", required)
 		}
 	}
 }
