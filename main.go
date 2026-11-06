@@ -81,7 +81,8 @@ func (mr *MigrationRunner) loadEmbeddedMigrations() ([]Migration, error) {
 }
 
 func (mr *MigrationRunner) loadMigrationsFromDir(dir string) ([]Migration, error) {
-	entries, err := os.ReadDir(dir)
+	dirFS := os.DirFS(dir)
+	entries, err := fs.ReadDir(dirFS, ".")
 	if err != nil {
 		return nil, fmt.Errorf("failed to read migrations directory %s: %w", dir, err)
 	}
@@ -91,11 +92,9 @@ func (mr *MigrationRunner) loadMigrationsFromDir(dir string) ([]Migration, error
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".sql") {
 			continue
 		}
-		path := filepath.Join(dir, entry.Name())
-		// #nosec G304 - path is constructed from controlled directory and filename
-		content, err := os.ReadFile(path)
+		content, err := fs.ReadFile(dirFS, entry.Name())
 		if err != nil {
-			return nil, fmt.Errorf("failed to read migration %s: %w", path, err)
+			return nil, fmt.Errorf("failed to read migration %s: %w", entry.Name(), err)
 		}
 		version := strings.TrimSuffix(entry.Name(), ".sql")
 		migrations = append(migrations, Migration{Version: version, SQL: string(content)})
