@@ -14,6 +14,7 @@ import (
 	"sort"
 	"strings"
 	"time"
+	_ "time/tzdata"
 
 	_ "github.com/lib/pq"
 
