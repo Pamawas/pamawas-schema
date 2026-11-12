@@ -11,19 +11,19 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-// LoggingMiddleware wraps an http.Handler with structured logging for Loki
+// LoggingMiddleware wraps an http.Handler with structured logging for Loki.
 func LoggingMiddleware(serviceName string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 
-		// Generate or extract trace ID
+		// Generate or extract trace ID.
 		traceID := r.Header.Get("X-Trace-ID")
 		if traceID == "" {
 			traceID = uuid.New().String()[:8]
 		}
 		spanID := uuid.New().String()[:8]
 
-		// Create logger with context fields
+		// Create logger with context fields.
 		logger := log.With().
 			Str("service", serviceName).
 			Str("component", "http").
@@ -39,7 +39,7 @@ func LoggingMiddleware(serviceName string, next http.Handler) http.Handler {
 
 		duration := time.Since(start)
 
-		// Structured log with Loki labels
+		// Structured log with Loki labels.
 		logger.Info().
 			Str("method", r.Method).
 			Str("path", r.URL.Path).
@@ -53,7 +53,7 @@ func LoggingMiddleware(serviceName string, next http.Handler) http.Handler {
 	})
 }
 
-// ErrorLoggingMiddleware wraps an http.Handler with panic recovery and error logging
+// ErrorLoggingMiddleware wraps an http.Handler with panic recovery and error logging.
 func ErrorLoggingMiddleware(serviceName string, next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		defer func() {
@@ -80,12 +80,12 @@ func ErrorLoggingMiddleware(serviceName string, next http.Handler) http.Handler 
 	})
 }
 
-// GetLoggerFromContext extracts the logger from context
+// GetLoggerFromContext extracts the logger from context.
 func GetLoggerFromContext(ctx context.Context) zerolog.Logger {
 	return *zerolog.Ctx(ctx)
 }
 
-// AddContextFields adds fields to the logger in context
+// AddContextFields adds fields to the logger in context.
 func AddContextFields(ctx context.Context, fields map[string]interface{}) context.Context {
 	logger := *zerolog.Ctx(ctx)
 	for k, v := range fields {

@@ -14,7 +14,6 @@ import (
 	"sort"
 	"strings"
 	"time"
-	_ "time/tzdata"
 
 	_ "github.com/lib/pq"
 
@@ -56,6 +55,7 @@ func NewMigrationRunner(db *sql.DB, migrationsDir string, useEmbedded bool) (*Mi
 	return mr, nil
 }
 
+// loadEmbeddedMigrations reads embedded .sql files and returns them sorted by version.
 func (mr *MigrationRunner) loadEmbeddedMigrations() ([]Migration, error) {
 	entries, err := fs.ReadDir(embeddedMigrations, "migrations")
 	if err != nil {
