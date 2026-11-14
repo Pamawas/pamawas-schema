@@ -201,74 +201,37 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Expect 5 migrations: 001_init, 002_idempotency_records, 003_feedback_and_reviews, 004_add_metrics_and_logs, 005_resolve_notification
-	if len(runner.migrations) != 5 {
-		t.Fatalf("migration count = %d, want 5", len(runner.migrations))
+	// Expect 1 compacted baseline migration: 001_init
+	if len(runner.migrations) != 1 {
+		t.Fatalf("migration count = %d, want 1", len(runner.migrations))
 	}
 
-	// First migration should be 001_init
 	migration := runner.migrations[0]
 	if migration.Version != "001_init" {
 		t.Fatalf("initial migration version = %q", migration.Version)
 	}
-	for _, required := range []string{
+
+	requiredSnippets := []string{
+		// Core events & incidents
 		"source_event_id", "occurred_at", "last_event_at", "correlation_reason",
 		"investigation_runs", "investigation_outbox",
 		"report_requests", "report_incidents",
 		"delivery_attempts", "UNIQUE (run_id, ordinal)",
-	} {
-		if !strings.Contains(migration.SQL, required) {
-			t.Errorf("migration missing %q", required)
-		}
-	}
-
-	// Second migration should be 002_idempotency_records
-	migration2 := runner.migrations[1]
-	if migration2.Version != "002_idempotency_records" {
-		t.Fatalf("second migration version = %q", migration2.Version)
-	}
-	if !strings.Contains(migration2.SQL, "idempotency_records") {
-		t.Errorf("second migration missing idempotency_records table")
-	}
-
-	// Third migration should be 003_feedback_and_reviews
-	migration3 := runner.migrations[2]
-	if migration3.Version != "003_feedback_and_reviews" {
-		t.Fatalf("third migration version = %q", migration3.Version)
-	}
-	for _, required := range []string{
+		// Idempotency records
+		"idempotency_records",
+		// Feedback and reviews
 		"investigation_reviews", "report_feedback",
 		"verdict IN ('correct', 'incorrect', 'partially_correct', 'unknown')",
 		"rating IN ('useful', 'not_useful', 'wrong', 'missing_context')",
-	} {
-		if !strings.Contains(migration3.SQL, required) {
-			t.Errorf("third migration missing %q", required)
-		}
+		// Metrics and logs
+		"metrics", "logs", "evidence",
+		// Outbox resolve notification
+		"reason", "incident_created", "incident_resolved",
 	}
 
-	// Fourth migration should be 004_add_metrics_and_logs
-	migration4 := runner.migrations[3]
-	if migration4.Version != "004_add_metrics_and_logs" {
-		t.Fatalf("fourth migration version = %q", migration4.Version)
-	}
-	for _, required := range []string{
-		"metrics JSONB", "logs JSONB", "evidence",
-	} {
-		if !strings.Contains(migration4.SQL, required) {
-			t.Errorf("fourth migration missing %q", required)
-		}
-	}
-
-	// Fifth migration should be 005_resolve_notification
-	migration5 := runner.migrations[4]
-	if migration5.Version != "005_resolve_notification" {
-		t.Fatalf("fifth migration version = %q", migration5.Version)
-	}
-	for _, required := range []string{
-		"investigation_outbox", "reason", "incident_created", "incident_resolved",
-	} {
-		if !strings.Contains(migration5.SQL, required) {
-			t.Errorf("fifth migration missing %q", required)
+	for _, required := range requiredSnippets {
+		if !strings.Contains(migration.SQL, required) {
+			t.Errorf("migration missing %q", required)
 		}
 	}
 }
