@@ -202,9 +202,10 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Expect the compacted baseline (001_init) plus the dead-letter migration
-	// (002_dead_letter).
-	if len(runner.migrations) != 2 {
-		t.Fatalf("migration count = %d, want 2", len(runner.migrations))
+	// (002_dead_letter) and the incident alert-tracking migration
+	// (003_incident_alert_tracking).
+	if len(runner.migrations) != 3 {
+		t.Fatalf("migration count = %d, want 3", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -214,6 +215,13 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	deadLetter := runner.migrations[1]
 	if deadLetter.Version != "002_dead_letter" {
 		t.Fatalf("second migration version = %q", deadLetter.Version)
+	}
+	alertTracking := runner.migrations[2]
+	if alertTracking.Version != "003_incident_alert_tracking" {
+		t.Fatalf("third migration version = %q", alertTracking.Version)
+	}
+	if !strings.Contains(alertTracking.SQL, "alert_notified_at") {
+		t.Errorf("alert-tracking migration missing alert_notified_at column")
 	}
 
 	requiredSnippets := []string{
