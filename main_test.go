@@ -201,10 +201,11 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Expect the compacted baseline (001_init) plus the dead-letter migration
-	// (002_dead_letter).
-	if len(runner.migrations) != 2 {
-		t.Fatalf("migration count = %d, want 2", len(runner.migrations))
+	// Expect the compacted baseline (001_init), the dead-letter migration
+	// (002_dead_letter) and the evidence source/recommendation migration
+	// (003_evidence_source_and_recommendation).
+	if len(runner.migrations) != 3 {
+		t.Fatalf("migration count = %d, want 3", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -214,6 +215,15 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	deadLetter := runner.migrations[1]
 	if deadLetter.Version != "002_dead_letter" {
 		t.Fatalf("second migration version = %q", deadLetter.Version)
+	}
+	evidenceSource := runner.migrations[2]
+	if evidenceSource.Version != "003_evidence_source_and_recommendation" {
+		t.Fatalf("third migration version = %q", evidenceSource.Version)
+	}
+	for _, snippet := range []string{"'recommendation'", "source_detail", "evidence_source_check"} {
+		if !strings.Contains(evidenceSource.SQL, snippet) {
+			t.Errorf("evidence source migration missing %q", snippet)
+		}
 	}
 
 	requiredSnippets := []string{
