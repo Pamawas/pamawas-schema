@@ -202,10 +202,11 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Expect the compacted baseline (001_init), the dead-letter migration
-	// (002_dead_letter) and the evidence source/recommendation migration
-	// (003_evidence_source_and_recommendation).
-	if len(runner.migrations) != 3 {
-		t.Fatalf("migration count = %d, want 3", len(runner.migrations))
+	// (002_dead_letter), the evidence source/recommendation migration
+	// (003_evidence_source_and_recommendation) and the incident identity
+	// indexes (004_incident_identity_indexes).
+	if len(runner.migrations) != 4 {
+		t.Fatalf("migration count = %d, want 4", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -223,6 +224,15 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	for _, snippet := range []string{"'recommendation'", "source_detail", "evidence_source_check"} {
 		if !strings.Contains(evidenceSource.SQL, snippet) {
 			t.Errorf("evidence source migration missing %q", snippet)
+		}
+	}
+	identityIndexes := runner.migrations[3]
+	if identityIndexes.Version != "004_incident_identity_indexes" {
+		t.Fatalf("fourth migration version = %q", identityIndexes.Version)
+	}
+	for _, snippet := range []string{"incidents_env_title_started_idx", "incidents_affected_services_gin"} {
+		if !strings.Contains(identityIndexes.SQL, snippet) {
+			t.Errorf("identity-index migration missing %q", snippet)
 		}
 	}
 
