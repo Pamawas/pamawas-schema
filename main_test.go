@@ -201,14 +201,19 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Expect 1 compacted baseline migration: 001_init
-	if len(runner.migrations) != 1 {
-		t.Fatalf("migration count = %d, want 1", len(runner.migrations))
+	// Expect the compacted baseline (001_init) plus the dead-letter migration
+	// (002_dead_letter).
+	if len(runner.migrations) != 2 {
+		t.Fatalf("migration count = %d, want 2", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
 	if migration.Version != "001_init" {
 		t.Fatalf("initial migration version = %q", migration.Version)
+	}
+	deadLetter := runner.migrations[1]
+	if deadLetter.Version != "002_dead_letter" {
+		t.Fatalf("second migration version = %q", deadLetter.Version)
 	}
 
 	requiredSnippets := []string{
@@ -232,6 +237,12 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	for _, required := range requiredSnippets {
 		if !strings.Contains(migration.SQL, required) {
 			t.Errorf("migration missing %q", required)
+		}
+	}
+
+	for _, required := range []string{"investigation_outbox_dead_letter", "dead_lettered_at", "safe_error_code", "request_key_hash"} {
+		if !strings.Contains(deadLetter.SQL, required) {
+			t.Errorf("dead-letter migration missing %q", required)
 		}
 	}
 }
