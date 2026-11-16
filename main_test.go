@@ -204,10 +204,11 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	// Expect the compacted baseline (001_init), the dead-letter migration
 	// (002_dead_letter), the evidence source/recommendation migration
 	// (003_evidence_source_and_recommendation), the incident identity indexes
-	// (004_incident_identity_indexes) and the correlation decisions
-	// (005_correlation_decisions).
-	if len(runner.migrations) != 5 {
-		t.Fatalf("migration count = %d, want 5", len(runner.migrations))
+	// (004_incident_identity_indexes), the correlation decisions
+	// (005_correlation_decisions) and the state reconciliation
+	// (006_reconcile_incident_state).
+	if len(runner.migrations) != 6 {
+		t.Fatalf("migration count = %d, want 6", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -243,6 +244,15 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	for _, snippet := range []string{"correlation_decisions", "'ignored'", "identity_key", "incidents_open_identity_key_idx"} {
 		if !strings.Contains(decisions.SQL, snippet) {
 			t.Errorf("correlation-decisions migration missing %q", snippet)
+		}
+	}
+	reconcile := runner.migrations[5]
+	if reconcile.Version != "006_reconcile_incident_state" {
+		t.Fatalf("sixth migration version = %q", reconcile.Version)
+	}
+	for _, snippet := range []string{"grafana_fingerprint", "identity_key", "cond.status <> 'firing'"} {
+		if !strings.Contains(reconcile.SQL, snippet) {
+			t.Errorf("reconcile migration missing %q", snippet)
 		}
 	}
 
