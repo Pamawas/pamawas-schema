@@ -201,98 +201,74 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	// Expect the compacted baseline (001_init), the dead-letter migration
-	// (002_dead_letter), the evidence source/recommendation migration
-	// (003_evidence_source_and_recommendation), the incident identity indexes
-	// (004_incident_identity_indexes), the correlation decisions
-	// (005_correlation_decisions), the state reconciliation
-	// (006_reconcile_incident_state) and the report-request incident column
-	// (007_report_request_incident).
-	if len(runner.migrations) != 7 {
-		t.Fatalf("migration count = %d, want 7", len(runner.migrations))
+
+	// The expected migrations, in order, each with the schema elements it must
+	// introduce. Every migration is asserted through this table so adding one
+	// does not add a branch to this test.
+	expected := []struct {
+		version  string
+		snippets []string
+	}{
+		{
+			// Compacted baseline: the whole MVP data model.
+			version: "001_init",
+			snippets: []string{
+				// Core events & incidents
+				"source_event_id", "occurred_at", "last_event_at", "correlation_reason",
+				"investigation_runs", "investigation_outbox",
+				"report_requests", "report_incidents",
+				"delivery_attempts", "UNIQUE (run_id, ordinal)",
+				// Idempotency records
+				"idempotency_records",
+				// Feedback and reviews
+				"investigation_reviews", "report_feedback",
+				"verdict IN ('correct', 'incorrect', 'partially_correct', 'unknown')",
+				"rating IN ('useful', 'not_useful', 'wrong', 'missing_context')",
+				// Metrics and logs
+				"metrics", "logs", "evidence",
+				// Outbox resolve notification
+				"reason", "incident_created", "incident_resolved",
+			},
+		},
+		{
+			version:  "002_dead_letter",
+			snippets: []string{"investigation_outbox_dead_letter", "dead_lettered_at", "safe_error_code", "request_key_hash"},
+		},
+		{
+			version:  "003_evidence_source_and_recommendation",
+			snippets: []string{"'recommendation'", "source_detail", "evidence_source_check"},
+		},
+		{
+			version:  "004_incident_identity_indexes",
+			snippets: []string{"incidents_env_title_started_idx", "incidents_affected_services_gin"},
+		},
+		{
+			version:  "005_correlation_decisions",
+			snippets: []string{"correlation_decisions", "'ignored'", "identity_key", "incidents_open_identity_key_idx"},
+		},
+		{
+			version:  "006_reconcile_incident_state",
+			snippets: []string{"grafana_fingerprint", "identity_key", "cond.status <> 'firing'"},
+		},
+		{
+			version:  "007_report_request_incident",
+			snippets: []string{"report_requests ADD COLUMN IF NOT EXISTS incident_id", "report_requests_incident_id_idx"},
+		},
 	}
 
-	migration := runner.migrations[0]
-	if migration.Version != "001_init" {
-		t.Fatalf("initial migration version = %q", migration.Version)
-	}
-	deadLetter := runner.migrations[1]
-	if deadLetter.Version != "002_dead_letter" {
-		t.Fatalf("second migration version = %q", deadLetter.Version)
-	}
-	evidenceSource := runner.migrations[2]
-	if evidenceSource.Version != "003_evidence_source_and_recommendation" {
-		t.Fatalf("third migration version = %q", evidenceSource.Version)
-	}
-	for _, snippet := range []string{"'recommendation'", "source_detail", "evidence_source_check"} {
-		if !strings.Contains(evidenceSource.SQL, snippet) {
-			t.Errorf("evidence source migration missing %q", snippet)
-		}
-	}
-	identityIndexes := runner.migrations[3]
-	if identityIndexes.Version != "004_incident_identity_indexes" {
-		t.Fatalf("fourth migration version = %q", identityIndexes.Version)
-	}
-	for _, snippet := range []string{"incidents_env_title_started_idx", "incidents_affected_services_gin"} {
-		if !strings.Contains(identityIndexes.SQL, snippet) {
-			t.Errorf("identity-index migration missing %q", snippet)
-		}
-	}
-	decisions := runner.migrations[4]
-	if decisions.Version != "005_correlation_decisions" {
-		t.Fatalf("fifth migration version = %q", decisions.Version)
-	}
-	for _, snippet := range []string{"correlation_decisions", "'ignored'", "identity_key", "incidents_open_identity_key_idx"} {
-		if !strings.Contains(decisions.SQL, snippet) {
-			t.Errorf("correlation-decisions migration missing %q", snippet)
-		}
-	}
-	reconcile := runner.migrations[5]
-	if reconcile.Version != "006_reconcile_incident_state" {
-		t.Fatalf("sixth migration version = %q", reconcile.Version)
-	}
-	for _, snippet := range []string{"grafana_fingerprint", "identity_key", "cond.status <> 'firing'"} {
-		if !strings.Contains(reconcile.SQL, snippet) {
-			t.Errorf("reconcile migration missing %q", snippet)
-		}
-	}
-	requestIncident := runner.migrations[6]
-	if requestIncident.Version != "007_report_request_incident" {
-		t.Fatalf("seventh migration version = %q", requestIncident.Version)
-	}
-	for _, snippet := range []string{"report_requests ADD COLUMN IF NOT EXISTS incident_id", "report_requests_incident_id_idx"} {
-		if !strings.Contains(requestIncident.SQL, snippet) {
-			t.Errorf("report-request incident migration missing %q", snippet)
-		}
+	if len(runner.migrations) != len(expected) {
+		t.Fatalf("migration count = %d, want %d", len(runner.migrations), len(expected))
 	}
 
-	requiredSnippets := []string{
-		// Core events & incidents
-		"source_event_id", "occurred_at", "last_event_at", "correlation_reason",
-		"investigation_runs", "investigation_outbox",
-		"report_requests", "report_incidents",
-		"delivery_attempts", "UNIQUE (run_id, ordinal)",
-		// Idempotency records
-		"idempotency_records",
-		// Feedback and reviews
-		"investigation_reviews", "report_feedback",
-		"verdict IN ('correct', 'incorrect', 'partially_correct', 'unknown')",
-		"rating IN ('useful', 'not_useful', 'wrong', 'missing_context')",
-		// Metrics and logs
-		"metrics", "logs", "evidence",
-		// Outbox resolve notification
-		"reason", "incident_created", "incident_resolved",
-	}
-
-	for _, required := range requiredSnippets {
-		if !strings.Contains(migration.SQL, required) {
-			t.Errorf("migration missing %q", required)
+	for i, want := range expected {
+		got := runner.migrations[i]
+		if got.Version != want.version {
+			t.Fatalf("migration %d version = %q, want %q", i+1, got.Version, want.version)
 		}
-	}
-
-	for _, required := range []string{"investigation_outbox_dead_letter", "dead_lettered_at", "safe_error_code", "request_key_hash"} {
-		if !strings.Contains(deadLetter.SQL, required) {
-			t.Errorf("dead-letter migration missing %q", required)
+		for _, snippet := range want.snippets {
+			if !strings.Contains(got.SQL, snippet) {
+				t.Errorf("%s missing %q", want.version, snippet)
+			}
 		}
 	}
 }
