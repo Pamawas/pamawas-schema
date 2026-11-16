@@ -205,10 +205,11 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	// (002_dead_letter), the evidence source/recommendation migration
 	// (003_evidence_source_and_recommendation), the incident identity indexes
 	// (004_incident_identity_indexes), the correlation decisions
-	// (005_correlation_decisions) and the state reconciliation
-	// (006_reconcile_incident_state).
-	if len(runner.migrations) != 6 {
-		t.Fatalf("migration count = %d, want 6", len(runner.migrations))
+	// (005_correlation_decisions), the state reconciliation
+	// (006_reconcile_incident_state) and the report-request incident column
+	// (007_report_request_incident).
+	if len(runner.migrations) != 7 {
+		t.Fatalf("migration count = %d, want 7", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -253,6 +254,15 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	for _, snippet := range []string{"grafana_fingerprint", "identity_key", "cond.status <> 'firing'"} {
 		if !strings.Contains(reconcile.SQL, snippet) {
 			t.Errorf("reconcile migration missing %q", snippet)
+		}
+	}
+	requestIncident := runner.migrations[6]
+	if requestIncident.Version != "007_report_request_incident" {
+		t.Fatalf("seventh migration version = %q", requestIncident.Version)
+	}
+	for _, snippet := range []string{"report_requests ADD COLUMN IF NOT EXISTS incident_id", "report_requests_incident_id_idx"} {
+		if !strings.Contains(requestIncident.SQL, snippet) {
+			t.Errorf("report-request incident migration missing %q", snippet)
 		}
 	}
 
