@@ -203,10 +203,11 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	}
 	// Expect the compacted baseline (001_init), the dead-letter migration
 	// (002_dead_letter), the evidence source/recommendation migration
-	// (003_evidence_source_and_recommendation) and the incident identity
-	// indexes (004_incident_identity_indexes).
-	if len(runner.migrations) != 4 {
-		t.Fatalf("migration count = %d, want 4", len(runner.migrations))
+	// (003_evidence_source_and_recommendation), the incident identity indexes
+	// (004_incident_identity_indexes) and the correlation decisions
+	// (005_correlation_decisions).
+	if len(runner.migrations) != 5 {
+		t.Fatalf("migration count = %d, want 5", len(runner.migrations))
 	}
 
 	migration := runner.migrations[0]
@@ -233,6 +234,15 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 	for _, snippet := range []string{"incidents_env_title_started_idx", "incidents_affected_services_gin"} {
 		if !strings.Contains(identityIndexes.SQL, snippet) {
 			t.Errorf("identity-index migration missing %q", snippet)
+		}
+	}
+	decisions := runner.migrations[4]
+	if decisions.Version != "005_correlation_decisions" {
+		t.Fatalf("fifth migration version = %q", decisions.Version)
+	}
+	for _, snippet := range []string{"correlation_decisions", "'ignored'", "identity_key", "incidents_open_identity_key_idx"} {
+		if !strings.Contains(decisions.SQL, snippet) {
+			t.Errorf("correlation-decisions migration missing %q", snippet)
 		}
 	}
 
