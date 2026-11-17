@@ -254,6 +254,10 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 			version:  "007_report_request_incident",
 			snippets: []string{"report_requests ADD COLUMN IF NOT EXISTS incident_id", "report_requests_incident_id_idx"},
 		},
+		{
+			version:  "008_stale_verifications",
+			snippets: []string{"stale_verifications", "idx_stale_verifications_status_next", "idx_stale_verifications_unreported"},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
