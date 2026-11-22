@@ -258,6 +258,10 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 			version:  "008_stale_verifications",
 			snippets: []string{"stale_verifications", "idx_stale_verifications_status_next", "idx_stale_verifications_unreported"},
 		},
+		{
+			version:  "009_fk_indexes",
+			snippets: []string{"idx_investigation_outbox_incident_id", "idx_correlation_decisions_incident_id", "idx_stale_verifications_run_id"},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
