@@ -269,6 +269,10 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 				"report_incidents_run_id_fkey", "idx_report_incidents_run_id",
 			},
 		},
+		{
+			version:  "011_alert_evidence_source",
+			snippets: []string{"evidence_source_check", "'alert'"},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
