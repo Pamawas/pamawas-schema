@@ -286,6 +286,14 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 				"jsonb_array_elements", "grafana_fingerprint", "managed_alerting",
 			},
 		},
+		{
+			version: "014_immutable_telemetry_catalog_revisions",
+			snippets: []string{
+				"telemetry_catalog_revisions", "catalog_revision_id",
+				"reject_telemetry_catalog_revision_mutation",
+				"reject_investigation_catalog_repin",
+			},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
