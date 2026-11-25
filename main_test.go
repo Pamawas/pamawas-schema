@@ -279,6 +279,13 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 				"telemetry_catalog_entries", "telemetry_catalog_sync_state",
 			},
 		},
+		{
+			version: "013_event_condition_reference",
+			snippets: []string{
+				"events", "condition_ref", "events_condition_ref_object_check",
+				"jsonb_array_elements", "grafana_fingerprint", "managed_alerting",
+			},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
