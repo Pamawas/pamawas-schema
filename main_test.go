@@ -273,6 +273,12 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 			version:  "011_alert_evidence_source",
 			snippets: []string{"evidence_source_check", "'alert'"},
 		},
+		{
+			version: "012_live_telemetry_catalog",
+			snippets: []string{
+				"telemetry_catalog_entries", "telemetry_catalog_sync_state",
+			},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
