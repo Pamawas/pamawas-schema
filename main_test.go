@@ -294,6 +294,24 @@ func TestEmbeddedMigrationsContainUsableMVPDataModel(t *testing.T) {
 				"reject_investigation_catalog_repin",
 			},
 		},
+		{
+			version: "015_telemetry_catalog_refresh_leases",
+			snippets: []string{
+				"telemetry_catalog_sync_state", "failure_count", "next_retry_at",
+				"lease_token", "lease_expires_at", "catalog_revision_id",
+			},
+		},
+		{
+			version: "016_investigation_policies",
+			snippets: []string{
+				"investigation_policies", "recommendation_policy_id", "recommendation_policy_version",
+				"protect_investigation_policy_version", "minimum_observations",
+			},
+		},
+		{
+			version:  "017_investigation_prompt_audits",
+			snippets: []string{"investigation_runs", "prompt_context_audit", "jsonb_typeof"},
+		},
 	}
 
 	if len(runner.migrations) != len(expected) {
